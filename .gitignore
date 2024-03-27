@@ -1,0 +1,9 @@
+Thumbs.db
+*.pyo
+__pycache__
+/.idea/*
+session_data.json
+settings.json
+*.log
+.vscode/*
+.vscode
