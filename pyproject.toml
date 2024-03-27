@@ -1,0 +1,51 @@
+[project]
+name = "CrunchyrollAPI"
+version = "0.1.5"
+dependencies = [
+  'requests'
+]
+requires-python = ">=3.8"
+authors = [
+  {name = "jbsky", email = "webmaster@jbsky.fr" },
+]
+maintainers = [
+  {name = "jbsky", email = "webmaster@jbsky.fr" },
+]
+description = "Crunchyroll API Python interface"
+readme = "README.md"
+license = {file = "LICENSE.txt"}
+keywords = ["Crunchyroll", "Crunchyroll API"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: GNU Affero General Public License v3",
+  "Operating System :: OS Independent",
+]
+
+[project.optional-dependencies]
+gui = []
+cli = []
+
+[project.urls]
+Homepage = "https://github.com/jbsky/crunchyroll-api"
+Documentation = "https://github.com/jbsky/crunchyroll-api/blob/main/README.md"
+Repository = "https://github.com/jbsky/crunchyroll-api"
+"Bug Tracker" = "https://github.com/jbsky/crunchyroll-api/issues"
+Changelog = "https://github.com/jbsky/crunchyroll-api/CHANGELOG.md"
+
+#[project.scripts]
+#crunchyroll-api-cli = "crunchyroll-api:cli"
+
+#[project.gui-scripts]
+#crunchyroll-api-gui = "crunchyroll-api:scripts"
+
+#[project.entry-points."crunchyroll-api.magical"]
+#tomatoes = "crunchyroll-api:magical"
+
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = [
+    "src"
+]
