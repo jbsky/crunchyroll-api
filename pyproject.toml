@@ -1,5 +1,5 @@
 [project]
-name = "crunchyroll-api"
+name = "crunchyroll-api_JBSKY"
 version = "0.1.3"
 dependencies = []
 requires-python = ">=3.8"
@@ -9,10 +9,10 @@ authors = [
 maintainers = [
   {name = "jbsky", email = "webmaster@jbsky.fr" },
 ]
-description = "Crunchyroll API"
+description = "Crunchyroll API Python interface"
 readme = "README.md"
 license = {file = "LICENSE.txt"}
-keywords = ["crunchyroll", "api", "cli"]
+keywords = ["Crunchyroll", "Crunchyroll API"]
 classifiers = [
   "Programming Language :: Python :: 3",
   "License :: OSI Approved :: GNU Affero General Public License v3",
