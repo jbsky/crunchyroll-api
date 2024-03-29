@@ -24,8 +24,8 @@ gui = []
 cli = []
 
 [project.urls]
-Homepage = ""
-Documentation = ""
+Homepage = "https://github.com/jbsky/crunchyroll-api"
+Documentation = "https://github.com/jbsky/crunchyroll-api/blob/main/README.md"
 Repository = "https://github.com/jbsky/crunchyroll-api"
 "Bug Tracker" = "https://github.com/jbsky/crunchyroll-api/issues"
 Changelog = "https://github.com/jbsky/crunchyroll-api/CHANGELOG.md"
@@ -40,8 +40,10 @@ Changelog = "https://github.com/jbsky/crunchyroll-api/CHANGELOG.md"
 #tomatoes = "crunchyroll-api:magical"
 
 [build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
-[tool.hatch.build.targets.wheel]
-packages = ["src/crunchyroll-api"]
+[tool.setuptools.packages.find]
+where = [
+    "src"
+]
