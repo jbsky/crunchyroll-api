@@ -86,6 +86,14 @@ class CrunchyrollSettings:
 class CrunchyrollSettingsClass(CrunchyrollSettings):
 
         def __init__(self, SettingsData):
+
+            if os.path.isfile(SettingsData.setting_file):
+                with open(SettingsData.setting_file, "r") as infile:
+                    setting = json.load(infile)
+
+                for k, v in setting.items():
+                    self.__setattr__(k, v)
+
             for i in SettingsData.__dict__:
                 if SettingsData.__dict__[i] is not None:
                     self.__setattr__(i, SettingsData.__dict__[i])
@@ -95,8 +103,13 @@ class CrunchyrollSettingsClass(CrunchyrollSettings):
             self.save()
         
         def save(self):
-            pass
+            json_save = self.__dict__
+            rem_list = ["season_id", "id", "search", "session_restart", "search_type", "category_filter", "playlist", "crunchylist_filter", "season_filter", "field"]
+            json_save = {k: v for k, v in self.__dict__.items() if k not in rem_list}
 
+            with open(self.setting_file, "w") as outfile:
+                    outfile.write(json.dumps(json_save, indent=2))
+ 
         @property
         def name(self):
               return "class"
@@ -169,6 +182,7 @@ class CrunchyrollAPI:
     # !!!! be super careful and always provide a content_id, or it will delete the whole playlist! *sighs* !!!!
     # WATCHLIST_REMOVE_ENDPOINT = "https://beta-api.crunchyroll.com/content/v2/{}/watchlist/{}"
     WATCHLIST_V2_ENDPOINT = "https://beta-api.crunchyroll.com/content/v2/{}/watchlist"
+    CONTINUEWATCHING_ENDPOINT = "https://beta-api.crunchyroll.com/content/v1/{}/continue_watching"
     PLAYHEADS_ENDPOINT = "https://beta-api.crunchyroll.com/content/v2/{}/playheads"
     HISTORY_ENDPOINT = "https://beta-api.crunchyroll.com/content/v2/{}/watch-history"
     RESUME_ENDPOINT = "https://beta-api.crunchyroll.com/content/v2/discover/{}/history"
@@ -466,7 +480,7 @@ class CrunchyrollAPI:
         return self.get_listables_from_response(req.get('data'))
 
     def list_item_resume(self):
-        """ shows episode to resume for watching animes
+        """ shows episode to resume for continue_watching animes
         """
         items_per_page = 50
 
@@ -487,9 +501,9 @@ class CrunchyrollAPI:
 
         req = self.make_request(method = "GET", url = url, params = params)
 
-        return self.get_listables_from_response(req.get('items')),
+        return self.get_listables_from_response(req.get('items'))
 
-    def list_crunchylists(self, account):
+    def list_crunchylists(self):
         """ Retrieve all crunchylists """
 
         url = self.CRUNCHYLISTS_LISTS_ENDPOINT.format(self.account_data.account_id)
@@ -532,6 +546,8 @@ class CrunchyrollAPI:
                 listable_items.append(SeasonData(item))
             elif item['__class__'] == 'panel' and item['type'] == 'series':
                 listable_items.append(SeriesData(item))
+            elif item['panel']['__class__'] == 'panel' and item['panel']['type'] == 'episode':
+                listable_items.append(EpisodeData(item['panel']))
             else:
                 utils.crunchy_err(self.account, "unhandled index for metadata. %s"
                                   % (json.dumps(item, indent=4)))
@@ -601,23 +617,7 @@ class CrunchyrollAPI:
 
         return {item.get("id"): item for item in req.get("data")}
 
-
-    def get_stream_id_from_item(self, item: Dict) -> Union[str, None]:
-        """ takes a URL string and extracts the stream ID from it """
-
-        pattern = '/videos/([^/]+)/streams'
-        stream_id = re.search(pattern, item.get('__links__', {}).get('streams', {}).get('href', ''))
-        # history data has the stream_id at a different location
-        if not stream_id:
-            stream_id = re.search(pattern, item.get('streams_link', ''))
-
-        if not stream_id:
-            raise CrunchyrollError('Failed to get stream id')
-
-        return stream_id[1]
-
-
-    def get_playheads_from_api(self, episode_ids: Union[str, list]) -> Dict:
+    def get_playheads_from_content_ids(self, episode_ids: Union[str, list]) -> Dict:
         """ Retrieve playhead data from API for given episode / movie ids """
 
         if isinstance(episode_ids, str):
@@ -646,7 +646,7 @@ class CrunchyrollAPI:
 
         return out
 
-    def get_in_queue(self, ids: list) -> list:
+    def get_queue_from_content_ids(self, ids: list) -> list:
         """ retrieve watchlist status for given media ids """
 
         req = self.make_request(
@@ -658,14 +658,21 @@ class CrunchyrollAPI:
             }
         )
 
-        if not req or req.get("error") is not None:
-            utils.crunchy_err(self.account, "get_in_queue: Failed to retrieve data")
-            return []
-
-        if not req.get('data'):
-            return []
-
         return [item.get('id') for item in req.get('data')]
+
+    def get_continue_watching(self) -> list:
+        """ retrieve watchlist status for given media ids """
+
+        req = self.make_request(
+            method="GET",
+            url=self.CONTINUEWATCHING_ENDPOINT.format(self.account_data.account_id),
+            params={
+                "n":  1024,
+                "locale": self.account.subtitle
+            }
+        )
+
+        return self.get_listables_from_response(req.get('items'))
 
     
 def filter_seasons(crunchyroll_settings: CrunchyrollSettings, item: Dict) -> bool:
@@ -758,6 +765,12 @@ def check_arg(crunchyroll_settings, api: CrunchyrollAPI, argv):
     if argv.playlist:
         return api.get_playlist()
 
+    if argv.queue:
+        return api.get_queue_from_content_ids()
+
+    if argv.continue_watching:
+        return api.get_continue_watching()
+
     utils.crunchy_err(crunchyroll_settings, "Missing arg defined")
     return None
 
@@ -778,6 +791,8 @@ if __name__ == "__main__":
     groupAPI.add_argument("--category_filter", help="list filter or filter by category", required=False, action='store', const="", nargs='?', type = str)
     groupAPI.add_argument("--season_filter", help="list filter or filter by saison", required=False, action='store', const="", nargs='?', type = str)
     groupAPI.add_argument("--playlist", help="playlist", required=False, action='store_true')
+    groupAPI.add_argument("--queue", help="queue", required=False, action='store_true')
+    groupAPI.add_argument("--continue_watching", help="continue continue_watching endpoint", required=False, action='store_true')
     groupAPI.add_argument("--field","-f", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
 
     groupLogin = parser.add_argument_group('Account settings management',"")

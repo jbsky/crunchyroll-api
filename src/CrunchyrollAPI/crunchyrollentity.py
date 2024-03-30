@@ -15,7 +15,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from abc import abstractmethod
-from typing import Dict
+from typing import Dict, Union
 from json import dumps
 
 
@@ -211,6 +211,20 @@ class SeasonData(ListableItem):
         # @todo: not sure how to get that without checking all child episodes
         pass
 
+def get_stream_id_from_item(item: Dict) -> Union[str, None]:
+    """ takes a URL string and extracts the stream ID from it """
+    import re
+    pattern = '/videos/([^/]+)/streams'
+    stream_id = re.search(pattern, item.get('__links__', {}).get('streams', {}).get('href', ''))
+    # history data has the stream_id at a different location
+    if not stream_id:
+        stream_id = re.search(pattern, item.get('streams_link', ''))
+
+    if not stream_id:
+        raise CrunchyrollError('Failed to get stream id')
+
+    return stream_id[1]
+
 class EpisodeData(ListableItem):
     """ A single Episode of a Season of a Series """
 
@@ -243,7 +257,7 @@ class EpisodeData(ListableItem):
         self.poster: str | None = None
         self.banner: str | None = None
         self.playcount: int = 0
-        self.stream_id: str | None = utils.get_stream_id_from_item(panel)
+        self.stream_id: str | None = get_stream_id_from_item(panel)
 
         # self.recalc_playcount()
 
