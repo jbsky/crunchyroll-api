@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import os.path, os, random, json, argparse, re
+import os.path, os, random, json, argparse
 from abc import abstractmethod
 
 from datetime import timedelta, datetime
@@ -392,11 +392,6 @@ class CrunchyrollAPI:
     def search_items_by_season(self, season_filter):
         """ view all available anime seasons """
 
-        # season_filter = None
-
-        # if hasattr(self.account, "season_filter"):
-        #     season_filter: str = self.account.season_filter
-
         params = { "locale": self.account.subtitle, "season_tag": season_filter, "n": 100}
 
         req = self.make_request(method = "GET", url = self.BROWSE_ENDPOINT, params = params)
@@ -448,7 +443,7 @@ class CrunchyrollAPI:
             "q": search,
             "locale": self.account.subtitle,
             "start": int(self.account.offset) or 0,
-            "type": self.account.search_type
+            "type": search_type
         }
 
         req = self.make_request(method="GET", url = url, params = params)
@@ -538,7 +533,10 @@ class CrunchyrollAPI:
 
         for item in data:
 
-            if item['__class__'] == 'series':
+            if 'panel' in item.keys():
+                if item['panel']['type'] == 'episode':
+                    listable_items.append(EpisodeData(item['panel']))
+            elif item['__class__'] == 'series':
                 listable_items.append(SeriesData(item))
             elif item['__class__'] == 'episode':
                 listable_items.append(EpisodeData(item))
@@ -546,14 +544,20 @@ class CrunchyrollAPI:
                 listable_items.append(SeasonData(item))
             elif item['__class__'] == 'panel' and item['type'] == 'series':
                 listable_items.append(SeriesData(item))
-            elif item['panel']['__class__'] == 'panel' and item['panel']['type'] == 'episode':
-                listable_items.append(EpisodeData(item['panel']))
+            elif item['__class__'] == 'panel' and item['type'] == 'episode':
+                listable_items.append(EpisodeData(item))
+            elif hasattr(item, 'panel'):
+                if item['panel']['type'] == 'episode':
+                    listable_items.append(EpisodeData(item))
             else:
                 utils.crunchy_err(self.account, "unhandled index for metadata. %s"
                                   % (json.dumps(item, indent=4)))
                 continue
 
-        return listable_items
+        if listable_items.__len__():
+            return listable_items
+        else:
+            return False
 
     def get_json_from_response(self, r: Response) -> Optional[Dict]:
 
@@ -674,6 +678,107 @@ class CrunchyrollAPI:
 
         return self.get_listables_from_response(req.get('items'))
 
+    def check_arg(self, argv):
+        """Run mode-specific functions
+            series -> episodes
+            list categories
+            search item by categories
+            list seasons
+            get anime/season
+            get search/type 
+            get episodes/season
+            get history
+            get playlist
+            get crunchylists
+
+        """
+        if argv.category_filter is not None:
+            filter_categories = self.list_categories()
+            if argv.category_filter in filter_categories:
+                # return Series
+                return self.search_items_by_category(argv.category_filter)
+            else:
+                return filter_categories
+
+        if argv.season_filter is not None:
+            filter_season = self.list_seasons()     # return [winter|fall|summer|spring]-YYYY
+            if argv.season_filter in filter_season:
+                # return series
+                return self.search_items_by_season(argv.season_filter)
+            else:
+                return filter_season
+            
+        if argv.season_id is not None or \
+            argv.id is not None and argv.search_type == "season":
+            # episode
+            return self.search_item_by_season_id(argv.season_id)
+
+        # return 1 Serie
+        if argv.id is not None and argv.search_type == 'series':
+            return self.search_season_by_series_id(argv.id)
+
+        # return Series
+        if argv.search is not None:
+            return self.search_items_by_string(argv.search, argv.search_type)
+
+        if argv.crunchylist_filter is not None:
+            filter_crunchylists = self.list_crunchylists()
+            if argv.crunchylist_filter in filter_crunchylists:
+                return self.search_items_by_crunchylist()
+            else:
+                utils.crunchy_info(self.account, "list crunchylist filter %s" % str(filter_crunchylists))
+                return filter_crunchylists
+
+        # return Episode
+        if argv.playlist:
+            return self.get_playlist()
+
+        if argv.queue:
+            return self.get_queue_from_content_ids()
+
+        # return Episode
+        if argv.continue_watching:
+            return self.get_continue_watching()
+
+        # return Episode
+        if argv.history:
+            return self.list_item_by_history()
+
+        utils.crunchy_err(self.account, "Missing arg defined")
+        return None
+
+    @staticmethod
+    def get_argv():
+        parser = argparse.ArgumentParser()
+        parser.add_argument("--log_file", type=str, help="setting_file", required=False, default="crunchy.log")
+        groupAPI = parser.add_argument_group('Using the Crunchyroll API',"")
+        groupAPI.add_argument("--season_id", type=str, required=False)
+        groupAPI.add_argument("--serie_id", type=str, required=False)
+        groupAPI.add_argument("--search","-s", type=str, help="string search", required=False)
+        groupAPI.add_argument("--search_type", type=str, help="search type", required=False, default="series")
+        groupAPI.add_argument("--id", type=str, required=False)
+        groupAPI.add_argument("--crunchylist_filter", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
+        groupAPI.add_argument("--category_filter", help="list filter or filter by category", required=False, action='store', const="", nargs='?', type = str)
+        groupAPI.add_argument("--season_filter", help="list filter or filter by saison", required=False, action='store', const="", nargs='?', type = str)
+        groupAPI.add_argument("--history", help="history", required=False, action='store_true')
+        groupAPI.add_argument("--playlist", help="playlist", required=False, action='store_true')
+        groupAPI.add_argument("--queue", help="queue", required=False, action='store_true')
+        groupAPI.add_argument("--continue_watching", help="continue continue_watching endpoint", required=False, action='store_true')
+        groupAPI.add_argument("--field","-f", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
+
+        groupLogin = parser.add_argument_group('Account settings management',"")
+        groupLogin.add_argument("-u", "--username", type=str, help="username", required=False)
+        groupLogin.add_argument("-p", "--password", type=str, help="password", required=False)
+        groupLogin.add_argument("--profile_path", type=str, help="profile_path", required=False, default="./")
+        groupLogin.add_argument("--setting_file", type=str, help="setting_file", required=False, default="settings.json")
+        groupLogin.add_argument("--subtitle", type=str, help="""
+        en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
+        """, required=False)
+        groupLogin.add_argument("--subtitle-fallback", type=str, help="""
+        en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
+        """, required=False)
+
+        return parser.parse_args()
     
 def filter_seasons(crunchyroll_settings: CrunchyrollSettings, item: Dict) -> bool:
     """ takes an API info struct and returns if it matches user language settings """
@@ -718,96 +823,14 @@ def debug(crunchyroll_settings, _list, argv):
 
     utils.crunchy_info(crunchyroll_settings, text)
 
-def check_arg(crunchyroll_settings, api: CrunchyrollAPI, argv):
-    """Run mode-specific functions
-        list categories
-        search item by categories
-        list seasons
-        get anime/season
-        get search/type 
-        get episodes/season
-        get history
-        get playlist
-        get crunchylists
-    """
-    if argv.category_filter is not None:
-        filter_categories = api.list_categories()
-        if argv.category_filter in filter_categories:
-            return api.search_items_by_category(argv.category_filter)
-        else:
-            return filter_categories
 
-    if argv.season_filter is not None:
-        filter_season = api.list_seasons()
-        if argv.season_filter in filter_season:
-            return api.search_items_by_season(argv.season_filter)
-        else:
-            return filter_season
-        
-    if argv.season_id is not None or \
-        argv.id is not None and argv.search_type == "season":
-        return api.search_item_by_season_id(argv.season_id)
-
-    if argv.id is not None and argv.search_type == 'series':
-        return api.search_season_by_series_id(argv.id)
-
-    if argv.search is not None:
-        return api.search_items_by_string(argv.search, argv.search_type)
-
-    if argv.crunchylist_filter is not None:
-        filter_crunchylists = api.list_crunchylists()
-        if argv.crunchylist_filter in filter_crunchylists:
-            return api.search_items_by_crunchylist()
-        else:
-            utils.crunchy_info(crunchyroll_settings, "list crunchylist filter %s" % str(filter_crunchylists))
-            return filter_crunchylists
-
-    if argv.playlist:
-        return api.get_playlist()
-
-    if argv.queue:
-        return api.get_queue_from_content_ids()
-
-    if argv.continue_watching:
-        return api.get_continue_watching()
-
-    utils.crunchy_err(crunchyroll_settings, "Missing arg defined")
-    return None
 
 
 if __name__ == "__main__":
     import utils
     from crunchyrollentity import *
 
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--log_file", type=str, help="setting_file", required=False, default="crunchy.log")
-    groupAPI = parser.add_argument_group('Using the Crunchyroll API',"")
-    groupAPI.add_argument("--season_id", type=str, required=False)
-    groupAPI.add_argument("--serie_id", type=str, required=False)
-    groupAPI.add_argument("--search","-s", type=str, help="string search", required=False)
-    groupAPI.add_argument("--search_type", type=str, help="search type", required=False, default="series")
-    groupAPI.add_argument("--id", type=str, required=False)
-    groupAPI.add_argument("--crunchylist_filter", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
-    groupAPI.add_argument("--category_filter", help="list filter or filter by category", required=False, action='store', const="", nargs='?', type = str)
-    groupAPI.add_argument("--season_filter", help="list filter or filter by saison", required=False, action='store', const="", nargs='?', type = str)
-    groupAPI.add_argument("--playlist", help="playlist", required=False, action='store_true')
-    groupAPI.add_argument("--queue", help="queue", required=False, action='store_true')
-    groupAPI.add_argument("--continue_watching", help="continue continue_watching endpoint", required=False, action='store_true')
-    groupAPI.add_argument("--field","-f", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
-
-    groupLogin = parser.add_argument_group('Account settings management',"")
-    groupLogin.add_argument("-u", "--username", type=str, help="username", required=False)
-    groupLogin.add_argument("-p", "--password", type=str, help="password", required=False)
-    groupLogin.add_argument("--profile_path", type=str, help="profile_path", required=False, default="./")
-    groupLogin.add_argument("--setting_file", type=str, help="setting_file", required=False, default="settings.json")
-    groupLogin.add_argument("--subtitle", type=str, help="""
-    en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
-    """, required=False)
-    groupLogin.add_argument("--subtitle-fallback", type=str, help="""
-    en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
-    """, required=False)
-
-    argv = parser.parse_args()
+    argv = CrunchyrollAPI.get_argv()
 
     """ Main function for the settings """
     account = CrunchyrollSettingsArgs(argv)
@@ -826,7 +849,7 @@ if __name__ == "__main__":
 
     utils.crunchy_info(account, "Login successful")
 
-    _list = check_arg(account, api, argv)
+    _list = api.check_arg(argv)
 
     if _list is None:
         utils.crunchy_dump(account, argv.__dict__)

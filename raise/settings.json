@@ -1,0 +1,10 @@
+{
+  "setting_file": "./raise/settings.json",
+  "profile_path": "./raise/",
+  "crunchyroll_username": "",
+  "crunchyroll_password": "",
+  "device_id": "",
+  "subtitle": "en-US",
+  "subtitle_fallback": "en-US",
+  "log_file": "crunchy.log"
+}
