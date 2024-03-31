@@ -50,20 +50,16 @@ class CrunchyrollSettings:
         Hold also references to the addon which can't be kept at module level.
         """
         if not hasattr(self, "crunchyroll_username"):
-            utils.crunchy_err(self, "No crunchyroll username")
-            exit(11)
+            utils.crunchy_warn(self, "No crunchyroll username")
 
         if not hasattr(self, "crunchyroll_password"):
-            utils.crunchy_err(self, "No crunchyroll password")
-            exit(12)
+            utils.crunchy_warn(self, "No crunchyroll password")
 
         if not hasattr(self, "subtitle"):
-            utils.crunchy_err(self, "No subtitle defined")
-            exit(13)
+            utils.crunchy_warn(self, "No subtitle defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
 
         if not hasattr(self, "subtitle_fallback"):
-            utils.crunchy_err(self, "subtitle_fallback")
-            exit(13)
+            utils.crunchy_warn(self, "No subtitle_fallback defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
 
         if not self.device_id:
             char_set = "0123456789abcdefghijklmnopqrstuvwxyz0123456789"
