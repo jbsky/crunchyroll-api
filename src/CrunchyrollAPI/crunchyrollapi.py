@@ -25,6 +25,8 @@ from requests import HTTPError, Response
 from typing import Dict, List, Union
 
 
+locales = { "enUS", "enGB" ,"esLA" ,"esES" ,"ptBR", "ptPT", "frFR", "deDE", "arME", "itIT", "ruRU" }
+
 print (__name__)
 if __name__ == "__main__":
     import utils
@@ -57,8 +59,12 @@ class CrunchyrollSettings:
 
         if not hasattr(self, "subtitle"):
             utils.crunchy_warn(self, "No subtitle defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
+        elif self.subtitle not in locales:
+            utils.crunchy_warn(self, "No subtitle defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
 
         if not hasattr(self, "subtitle_fallback"):
+            utils.crunchy_warn(self, "No subtitle_fallback defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
+        elif self.subtitle not in locales:
             utils.crunchy_warn(self, "No subtitle_fallback defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
 
         if not self.device_id:
@@ -745,6 +751,7 @@ class CrunchyrollAPI:
 
     @staticmethod
     def get_argv():
+
         parser = argparse.ArgumentParser()
         parser.add_argument("--log_file", type=str, help="setting_file", required=False, default="crunchy.log")
         groupAPI = parser.add_argument_group('Using the Crunchyroll API',"")
@@ -774,7 +781,7 @@ class CrunchyrollAPI:
         en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
         """, required=False)
 
-        return parser.parse_args()
+        return parser.parse_args([])
     
 def filter_seasons(crunchyroll_settings: CrunchyrollSettings, item: Dict) -> bool:
     """ takes an API info struct and returns if it matches user language settings """
