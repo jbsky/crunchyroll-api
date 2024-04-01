@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData
+from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData, Seasons,Categories
 import os
 
 def get_config():
@@ -158,6 +158,16 @@ def test_list_season():
     _list = API.list_seasons()
     assert type(_list) is list, "Attendu type list_seasons is list"
     assert len(_list) > 0
+
+def test_list_season_item_format():
+    API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
+    assert API.start(), "Attendu Api.start()"
+    _list = API.list_seasons(True)
+    assert type(_list) is list, "Attendu type list_seasons is list"
+    assert len(_list) > 0
+    for item in _list:
+        assert issubclass(type(item), ListableItem)
+        assert type(item) is Season
 
 
 def test_list_categories():

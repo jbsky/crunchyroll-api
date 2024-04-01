@@ -25,7 +25,7 @@ from requests import HTTPError, Response
 from typing import Dict, List, Union
 
 
-locales = { "enUS", "enGB" ,"esLA" ,"esES" ,"ptBR", "ptPT", "frFR", "deDE", "arME", "itIT", "ruRU" }
+locales = { "en-US", "en-GB" ,"es-LA" ,"es-ES" ,"pt-BR", "pt-PT", "fr-FR", "de-DE", "ar-ME", "it-IT", "ru-RU" }
 
 print (__name__)
 if __name__ == "__main__":
@@ -58,14 +58,14 @@ class CrunchyrollSettings:
             utils.crunchy_warn(self, "No crunchyroll password")
 
         if not hasattr(self, "subtitle"):
-            utils.crunchy_warn(self, "No subtitle defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
+            utils.crunchy_warn(self, "No subtitle defined in en-US en-GB es-LA es-ES pt-BR pt-PT fr-FR de-DE ar-ME it-IT ru-RU")
         elif self.subtitle not in locales:
-            utils.crunchy_warn(self, "No subtitle defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
+            utils.crunchy_warn(self, "No subtitle defined in en-US en-GB es-LA es-ES pt-BR pt-PT fr-FR de-DE ar-ME it-IT ru-RU")
 
         if not hasattr(self, "subtitle_fallback"):
-            utils.crunchy_warn(self, "No subtitle_fallback defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
+            utils.crunchy_warn(self, "No subtitle_fallback defined in en-US en-GB es-LA es-ES pt-BR pt-PT fr-FR de-DE ar-ME it-IT ru-RU")
         elif self.subtitle not in locales:
-            utils.crunchy_warn(self, "No subtitle_fallback defined in enUS enGB esLA esES ptBR ptPT frFR deDE arME itIT ruRU")
+            utils.crunchy_warn(self, "No subtitle_fallback defined in en-US en-GB es-LA es-ES pt-BR pt-PT fr-FR de-DE ar-ME it-IT ru-RU")
 
         if not self.device_id:
             char_set = "0123456789abcdefghijklmnopqrstuvwxyz0123456789"
@@ -363,12 +363,19 @@ class CrunchyrollAPI:
 
         return result
     
-    def list_categories(self):
+    def list_categories(self, item_format = False):
         """ return list of all existing categories """
 
         req = self.make_request(method="GET", url=self.CATEGORIES_ENDPOINT, params={ "locale": self.accountSetting.subtitle })
         
         list = []
+
+        if item_format:
+            for f in req["items"]:
+                list.append(Categories(f))
+
+            return list
+
 
         for f in req["items"]:
             list.append(f['tenant_category'])
@@ -417,7 +424,7 @@ class CrunchyrollAPI:
 
         return self.get_listables_from_response(req.get('items'))
 
-    def list_seasons(self) -> List[ListableItem]:
+    def list_seasons(self, item_format = False) -> List[ListableItem]:
         """ return list of all existing season ex: fall-2023
             here season is either spring summer winter fall """
 
@@ -426,6 +433,14 @@ class CrunchyrollAPI:
         req = self.make_request(method = "GET", url = self.SEASONAL_TAGS_ENDPOINT, params = params )
 
         list = []
+
+        if item_format:
+
+            for f in req["data"]:
+                list.append(Seasons(f))
+
+            return list
+
 
         for f in req["data"]:
             list.append(f['id'])
@@ -687,7 +702,7 @@ class CrunchyrollAPI:
             2 modifie arg
             3 check_arg(arg)  """
         if argv.category_filter is not None:
-            filter_categories = self.list_categories()
+            filter_categories = self.list_categories(argv.item_format)
             if argv.category_filter in filter_categories:
                 # return Series
                 return self.search_series_by_category(argv.category_filter)
@@ -695,7 +710,7 @@ class CrunchyrollAPI:
                 return filter_categories
 
         if argv.season_filter is not None:
-            filter_season = self.list_seasons()     # return [winter|fall|summer|spring]-YYYY
+            filter_season = self.list_seasons(argv.item_format)     # return [winter|fall|summer|spring]-YYYY
             if argv.season_filter in filter_season:
                 # return series
                 return self.search_series_by_season(argv.season_filter)
@@ -755,6 +770,7 @@ class CrunchyrollAPI:
         groupAPI.add_argument("--crunchylist_filter", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
         groupAPI.add_argument("--category_filter", help="list filter or filter by category", required=False, action='store', const="", nargs='?', type = str)
         groupAPI.add_argument("--season_filter", help="list filter or filter by saison", required=False, action='store', const="", nargs='?', type = str)
+        groupAPI.add_argument("--item_format", help="item_format", required=False, action='store_true')
         groupAPI.add_argument("--history", help="history", required=False, action='store_true')
         groupAPI.add_argument("--playlist", help="playlist", required=False, action='store_true')
         groupAPI.add_argument("--queue", help="queue", required=False, action='store_true')

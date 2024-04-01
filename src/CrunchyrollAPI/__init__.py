@@ -21,6 +21,8 @@ __all__ = [
         'AccountSettings',
         'AccountData',
         'LoginError',
+        'Categories',
+        'Seasons',
         'SeasonData',
         'SeriesData',
         'EpisodeData',

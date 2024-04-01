@@ -166,18 +166,29 @@ class SeriesData(ListableItem):
         # @todo: not sure how to get that without checking all child seasons and their episodes
         pass
 
-class CategoriesData(ListableItem):
+class Categories(ListableItem):
     """ A Season/Arc of a Series containing Episodes """
 
     def __init__(self, data: dict):
         super().__init__()
 
-        self.tenant_category = data.get("tenant_category")
-        self.slug = data.get("slug")
+        self.id = data['tenant_category']
+        self.slug = data['slug']
         self.title = data["localization"]["title"]
         self.description = data["localization"]["description"]
         self.locale = data["localization"]["locale"]
-        self.href = data.get("__href__")
+        self.href = data['__href__']
+        self.thumb = data['images']['background'][len(data['images']['background'])-1]['source']
+
+class Seasons(ListableItem):
+    """ A Season/Arc of a Series containing Episodes """
+
+    def __init__(self, data: dict):
+        super().__init__()
+
+        self.id = data["id"]
+        self.title = data["localization"]["title"]
+        self.description = data["localization"]["description"]
 
 class SeasonData(ListableItem):
     """ A Season/Arc of a Series containing Episodes """
