@@ -375,7 +375,7 @@ class CrunchyrollAPI:
 
         return list
 
-    def search_items_by_category(self, filter_categories):
+    def search_series_by_category(self, filter_categories):
         """ view all anime from selected mode """
         # category_filter: str = filter_categories
         params = {
@@ -391,7 +391,7 @@ class CrunchyrollAPI:
 
         return self.get_listables_from_response(req.get('items'))
 
-    def search_items_by_season(self, season_filter):
+    def search_series_by_season(self, season_filter):
         """ view all available anime seasons """
 
         params = { "locale": self.account.subtitle, "season_tag": season_filter, "n": 100}
@@ -453,7 +453,7 @@ class CrunchyrollAPI:
         type_data = req.get('items')[0]  # @todo: for now we support only the first type, which should be series
         return self.get_listables_from_response(type_data.get('items'))
 
-    def search_item_by_season_id(self, season_id):
+    def search_episodes_by_season_id(self, season_id):
         """ view all episodes of season """
 
         url = self.EPISODES_ENDPOINT.format(self.account_data.cms.bucket)
@@ -463,7 +463,7 @@ class CrunchyrollAPI:
 
         return self.get_listables_from_response(req.get('items'))
 
-    def list_item_by_history(self):
+    def get_episodes_by_history(self):
         """ shows history of watched anime
         """
         items_per_page = 50
@@ -491,7 +491,7 @@ class CrunchyrollAPI:
 
         return self.get_listables_from_response(req.get('data'))
 
-    def get_playlist(self):
+    def get_episodes_by_playlist(self):
         """ shows anime queue/playlist """
         params = { "n": 1024, "locale": self.account.subtitle }
         url = self.WATCHLIST_LIST_ENDPOINT.format(self.account_data.account_id)
@@ -666,7 +666,7 @@ class CrunchyrollAPI:
 
         return [item.get('id') for item in req.get('data')]
 
-    def get_continue_watching(self) -> list:
+    def get_episodes_by_continue_watching(self) -> list:
         """ retrieve watchlist status for given media ids """
 
         req = self.make_request(
@@ -698,7 +698,7 @@ class CrunchyrollAPI:
             filter_categories = self.list_categories()
             if argv.category_filter in filter_categories:
                 # return Series
-                return self.search_items_by_category(argv.category_filter)
+                return self.search_series_by_category(argv.category_filter)
             else:
                 return filter_categories
 
@@ -706,14 +706,14 @@ class CrunchyrollAPI:
             filter_season = self.list_seasons()     # return [winter|fall|summer|spring]-YYYY
             if argv.season_filter in filter_season:
                 # return series
-                return self.search_items_by_season(argv.season_filter)
+                return self.search_series_by_season(argv.season_filter)
             else:
                 return filter_season
             
         if argv.season_id is not None or \
             argv.id is not None and argv.search_type == "season":
             # episode
-            return self.search_item_by_season_id(argv.season_id)
+            return self.search_episodes_by_season_id(argv.season_id)
 
         # return 1 Serie
         if argv.id is not None and argv.search_type == 'series':
@@ -733,18 +733,18 @@ class CrunchyrollAPI:
 
         # return Episode
         if argv.playlist:
-            return self.get_playlist()
+            return self.get_episodes_by_playlist()
 
         if argv.queue:
             return self.get_queue_from_content_ids()
 
         # return Episode
         if argv.continue_watching:
-            return self.get_continue_watching()
+            return self.get_episodes_by_continue_watching()
 
         # return Episode
         if argv.history:
-            return self.list_item_by_history()
+            return self.get_episodes_by_history()
 
         utils.crunchy_err(self.account, "Missing arg defined")
         return None
