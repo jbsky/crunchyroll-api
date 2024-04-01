@@ -198,10 +198,9 @@ class CrunchyrollAPI:
 
     AUTHORIZATION = "Basic bHF0ai11YmY1aHF4dGdvc2ZsYXQ6N2JIY3hfYnI0czJubWE1bVdrdHdKZEY0ZTU2UU5neFQ="
 
-    def __init__(self, accountSetting: CrunchyrollSettings = None, mode = "") -> None:
+    def __init__(self, accountSetting: CrunchyrollSettings = None) -> None:
         self.http = requests.Session()
         self.locale: str = accountSetting.subtitle if hasattr(accountSetting, "subtitle") else None
-        self.mode: str = mode
         self.account_data: AccountData = AccountData(dict())
         self.api_headers: Dict = {
             "User-Agent": "Crunchyroll/3.50.2",
@@ -365,7 +364,8 @@ class CrunchyrollAPI:
         return result
     
     def list_categories(self):
-        # api request for category names / tags
+        """ return list of all existing categories """
+
         req = self.make_request(method="GET", url=self.CATEGORIES_ENDPOINT, params={ "locale": self.accountSetting.subtitle })
         
         list = []
@@ -376,8 +376,8 @@ class CrunchyrollAPI:
         return list
 
     def search_series_by_category(self, filter_categories):
-        """ view all anime from selected mode """
-        # category_filter: str = filter_categories
+        """ search all series for a category """
+
         params = {
             "locale": self.accountSetting.subtitle,
             "categories": filter_categories,
@@ -392,7 +392,7 @@ class CrunchyrollAPI:
         return self.get_listables_from_response(req.get('items'))
 
     def search_series_by_season(self, season_filter):
-        """ view all available anime seasons """
+        """ search all series for a season """
 
         params = { "locale": self.accountSetting.subtitle, "season_tag": season_filter, "n": 100}
 
@@ -400,8 +400,8 @@ class CrunchyrollAPI:
 
         return self.get_listables_from_response(req.get('items'))
 
-    def search_season_by_series_id(self, id):
-        """ view all seasons/arcs of an anime """
+    def search_seasons_by_series_id(self, id):
+        """ search all season for a serie """
 
         if not hasattr(self.accountSetting, 'subtitle'):
             raise CrunchyrollError('subtitle not defined')
@@ -418,7 +418,9 @@ class CrunchyrollAPI:
         return self.get_listables_from_response(req.get('items'))
 
     def list_seasons(self) -> List[ListableItem]:
-        """ view all available seasons """
+        """ return list of all existing season ex: fall-2023
+            here season is either spring summer winter fall """
+
         params = {"locale": self.accountSetting.subtitle}
 
         req = self.make_request(method = "GET", url = self.SEASONAL_TAGS_ENDPOINT, params = params )
@@ -464,8 +466,8 @@ class CrunchyrollAPI:
         return self.get_listables_from_response(req.get('items'))
 
     def get_episodes_by_history(self):
-        """ shows history of watched anime
-        """
+        """ shows history of watched anime """
+
         items_per_page = 50
         current_page = int(self.accountSetting.offset) or 1
 
@@ -477,8 +479,8 @@ class CrunchyrollAPI:
         return self.get_listables_from_response(req.get('data'))
 
     def list_item_resume(self):
-        """ shows episode to resume for continue_watching animes
-        """
+        """ shows episode to resume for continue_watching animes """
+
         items_per_page = 50
 
         if not hasattr(accountSetting, "offset"):
@@ -493,6 +495,7 @@ class CrunchyrollAPI:
 
     def get_episodes_by_playlist(self):
         """ shows anime queue/playlist """
+
         params = { "n": 1024, "locale": self.accountSetting.subtitle }
         url = self.WATCHLIST_LIST_ENDPOINT.format(self.account_data.account_id)
 
@@ -523,7 +526,6 @@ class CrunchyrollAPI:
         req = self.make_request(method='GET', url = url, params = params)
 
         return self.get_listables_from_response(req.get('data'))
-
 
     # @todo we could change the return type and along with the listables return additional data that we preload
     #       like info what is on watchlist, artwork, playhead, ...
@@ -681,19 +683,9 @@ class CrunchyrollAPI:
         return self.get_listables_from_response(req.get('items'))
 
     def check_arg(self, argv):
-        """Run mode-specific functions
-            series -> episodes
-            list categories
-            search item by categories
-            list seasons
-            get anime/season
-            get search/type 
-            get episodes/season
-            get history
-            get playlist
-            get crunchylists
-
-        """
+        """ 1 obtain an arg from this object CrunchyrollAPI.get_arg()
+            2 modifie arg
+            3 check_arg(arg)  """
         if argv.category_filter is not None:
             filter_categories = self.list_categories()
             if argv.category_filter in filter_categories:
@@ -717,7 +709,7 @@ class CrunchyrollAPI:
 
         # return 1 Serie
         if argv.id is not None and argv.search_type == 'series':
-            return self.search_season_by_series_id(argv.id)
+            return self.search_seasons_by_series_id(argv.id)
 
         # return Series
         if argv.search is not None:
@@ -750,7 +742,7 @@ class CrunchyrollAPI:
         return None
 
     @staticmethod
-    def get_argv(flush = False):
+    def get_argv(pytest = False):
 
         parser = argparse.ArgumentParser()
         parser.add_argument("--log_file", type=str, help="setting_file", required=False, default="crunchy.log")
@@ -781,7 +773,7 @@ class CrunchyrollAPI:
         en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
         """, required=False)
 
-        if flush:
+        if pytest:
             return parser.parse_args([])
         
         return parser.parse_args()
@@ -829,9 +821,6 @@ def debug(crunchyroll_settings, _list, argv):
 
     utils.crunchy_info(crunchyroll_settings, text)
 
-
-
-
 if __name__ == "__main__":
     import utils
     from crunchyrollentity import *
@@ -842,11 +831,9 @@ if __name__ == "__main__":
     accountSetting = CrunchyrollSettingsArgs(argv)
 
     if not (accountSetting.crunchyroll_username and accountSetting.crunchyroll_password):
-        # open settings settings
         utils.crunchy_err(accountSetting, "Missing username/password")
         exit(1)
 
-    # login
     api = CrunchyrollAPI(accountSetting=accountSetting)
 
     if not api.start():
