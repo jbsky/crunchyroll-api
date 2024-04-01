@@ -18,7 +18,7 @@ from CrunchyrollAPI.crunchyrollapi import *
 from CrunchyrollAPI.utils import *
 
 __all__ = [
-        'SettingsData',
+        'AccountSettings',
         'AccountData',
         'LoginError',
         'SeasonData',

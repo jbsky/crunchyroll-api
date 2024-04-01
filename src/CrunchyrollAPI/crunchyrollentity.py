@@ -54,7 +54,7 @@ class CMS(Object):
         self.signature: str = data.get("signature")
         self.key_pair_id: str = data.get("key_pair_id")
 
-class SettingsData(Object):
+class AccountSettings(Object):
     def __init__(self, data: dict):
         self.setting_file = data.get("setting_file")
         self.profile_path = data.get("profile_path")
@@ -117,7 +117,6 @@ class ListableItem(Object):
             if key in self.__dict__.keys():
                 data[key] = self.__dict__[key]
             else:
-                utils.crunchy_err(None, "key %s does not exit"%(key))
                 return False
         
         return data

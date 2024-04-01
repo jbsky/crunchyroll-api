@@ -87,18 +87,18 @@ class CrunchyrollSettings:
 
 class CrunchyrollSettingsClass(CrunchyrollSettings):
 
-        def __init__(self, SettingsData):
+        def __init__(self, accountSettings):
 
-            if os.path.isfile(SettingsData.setting_file):
-                with open(SettingsData.setting_file, "r") as infile:
+            if os.path.isfile(accountSettings.setting_file):
+                with open(accountSettings.setting_file, "r") as infile:
                     setting = json.load(infile)
 
                 for k, v in setting.items():
                     self.__setattr__(k, v)
 
-            for i in SettingsData.__dict__:
-                if SettingsData.__dict__[i] is not None:
-                    self.__setattr__(i, SettingsData.__dict__[i])
+            for i in accountSettings.__dict__:
+                if accountSettings.__dict__[i] is not None:
+                    self.__setattr__(i, accountSettings.__dict__[i])
 
             super().__init__()
 
@@ -132,7 +132,7 @@ class CrunchyrollSettingsArgs(CrunchyrollSettings):
                 if argv.__dict__[i] is not None:
                     self.__setattr__(i, argv.__dict__[i])
 
-                    # get account information
+            # get account settings information
             if argv.username is not None and argv.username != "":
                 self.crunchyroll_username = argv.username
 
@@ -198,23 +198,23 @@ class CrunchyrollAPI:
 
     AUTHORIZATION = "Basic bHF0ai11YmY1aHF4dGdvc2ZsYXQ6N2JIY3hfYnI0czJubWE1bVdrdHdKZEY0ZTU2UU5neFQ="
 
-    def __init__(self, account: CrunchyrollSettings = None, mode = "") -> None:
+    def __init__(self, accountSetting: CrunchyrollSettings = None, mode = "") -> None:
         self.http = requests.Session()
-        self.locale: str = account.subtitle if hasattr(account, "subtitle") else None
+        self.locale: str = accountSetting.subtitle if hasattr(accountSetting, "subtitle") else None
         self.mode: str = mode
         self.account_data: AccountData = AccountData(dict())
         self.api_headers: Dict = {
             "User-Agent": "Crunchyroll/3.50.2",
             "Content-Type": "application/x-www-form-urlencoded"
         }
-        self.account = account
-        self.account.items_per_page = 50
-        self.account.offset = 0
+        self.accountSetting = accountSetting
+        self.accountSetting.items_per_page = 50
+        self.accountSetting.offset = 0
 
     def start(self) -> bool:
-        session_restart = self.account.session_restart
+        session_restart = self.accountSetting.session_restart
 
-        # restore account data from file
+        # restore account settings data from file
         session_data = self.load_from_storage()
         if session_data and not session_restart:
             self.account_data = AccountData(session_data)
@@ -237,8 +237,8 @@ class CrunchyrollAPI:
 
         if not refresh:
             data = {
-                "username": self.account.crunchyroll_username,
-                "password": self.account.crunchyroll_password,
+                "username": self.accountSetting.crunchyroll_username,
+                "password": self.accountSetting.crunchyroll_password,
                 "grant_type": "password",
                 "scope": "offline_access",
             }
@@ -254,11 +254,11 @@ class CrunchyrollAPI:
         # if refreshing and refresh token is expired, it will throw a 400
         if r.status_code == 400:
             if refresh:
-                utils.crunchy_info(self.account, "Invalid/Expired credentials, try restarting session from scratch")
+                utils.crunchy_info(self.accountSetting, "Invalid/Expired credentials, try restarting session from scratch")
                 self.delete_storage()
                 return self.create_session()
             else:
-                utils.crunchy_err(self.account, "Failed to authenticate!")
+                utils.crunchy_err(self.accountSetting, "Failed to authenticate!")
                 raise LoginError("Failed to authenticate")
 
         r_json = self.get_json_from_response(r)
@@ -316,7 +316,7 @@ class CrunchyrollAPI:
             if is_retry:
                 raise LoginError('Request to API failed twice due to authentication issues.')
 
-            utils.crunchy_err(self.account, "make_request_proposal: request failed due to auth error")
+            utils.crunchy_err(self.accountSetting, "make_request_proposal: request failed due to auth error")
             self.account_data.expires = 0
             return self.make_request(method, url, headers, params, data, json_data, True)
 
@@ -334,7 +334,7 @@ class CrunchyrollAPI:
     def get_storage_path(self) -> str:
         """Get cookie file path
         """
-        return self.account.profile_path
+        return self.accountSetting.profile_path
 
     def load_from_storage(self) -> Optional[Dict]:
         storage_file = self.get_storage_path() + "session_data.json"
@@ -366,7 +366,7 @@ class CrunchyrollAPI:
     
     def list_categories(self):
         # api request for category names / tags
-        req = self.make_request(method="GET", url=self.CATEGORIES_ENDPOINT, params={ "locale": self.account.subtitle })
+        req = self.make_request(method="GET", url=self.CATEGORIES_ENDPOINT, params={ "locale": self.accountSetting.subtitle })
         
         list = []
 
@@ -379,10 +379,10 @@ class CrunchyrollAPI:
         """ view all anime from selected mode """
         # category_filter: str = filter_categories
         params = {
-            "locale": self.account.subtitle,
+            "locale": self.accountSetting.subtitle,
             "categories": filter_categories,
-            "n": int(self.account.items_per_page) or 50,
-            "start": int(self.account.offset) or 0,
+            "n": int(self.accountSetting.items_per_page) or 50,
+            "start": int(self.accountSetting.offset) or 0,
             "ratings": 'true'
         }
 
@@ -394,7 +394,7 @@ class CrunchyrollAPI:
     def search_series_by_season(self, season_filter):
         """ view all available anime seasons """
 
-        params = { "locale": self.account.subtitle, "season_tag": season_filter, "n": 100}
+        params = { "locale": self.accountSetting.subtitle, "season_tag": season_filter, "n": 100}
 
         req = self.make_request(method = "GET", url = self.BROWSE_ENDPOINT, params = params)
 
@@ -403,11 +403,11 @@ class CrunchyrollAPI:
     def search_season_by_series_id(self, id):
         """ view all seasons/arcs of an anime """
 
-        if not hasattr(self.account, 'subtitle'):
+        if not hasattr(self.accountSetting, 'subtitle'):
             raise CrunchyrollError('subtitle not defined')
 
         url = self.SEASONS_ENDPOINT.format(self.account_data.cms.bucket)
-        params = { "locale": self.account.subtitle,
+        params = { "locale": self.accountSetting.subtitle,
                    "series_id": id,
                    "preferred_audio_language": self.account_data.default_audio_language,
                    "force_locale": ""
@@ -419,7 +419,7 @@ class CrunchyrollAPI:
 
     def list_seasons(self) -> List[ListableItem]:
         """ view all available seasons """
-        params = {"locale": self.account.subtitle}
+        params = {"locale": self.accountSetting.subtitle}
 
         req = self.make_request(method = "GET", url = self.SEASONAL_TAGS_ENDPOINT, params = params )
 
@@ -436,15 +436,15 @@ class CrunchyrollAPI:
             TODO: Extract all search type
         """
 
-        if not hasattr(self.account, "offset"):
-                self.account.offset = 0
+        if not hasattr(self.accountSetting, "offset"):
+                self.accountSetting.offset = 0
 
         url = self.SEARCH_ENDPOINT
         params = {
             "n": 50,
             "q": search,
-            "locale": self.account.subtitle,
-            "start": int(self.account.offset) or 0,
+            "locale": self.accountSetting.subtitle,
+            "start": int(self.accountSetting.offset) or 0,
             "type": search_type
         }
 
@@ -457,7 +457,7 @@ class CrunchyrollAPI:
         """ view all episodes of season """
 
         url = self.EPISODES_ENDPOINT.format(self.account_data.cms.bucket)
-        params = { "locale": self.account.subtitle, "season_id": season_id }
+        params = { "locale": self.accountSetting.subtitle, "season_id": season_id }
 
         req = self.make_request(method = "GET", url = url, params = params)
 
@@ -467,10 +467,10 @@ class CrunchyrollAPI:
         """ shows history of watched anime
         """
         items_per_page = 50
-        current_page = int(self.account.offset) or 1
+        current_page = int(self.accountSetting.offset) or 1
 
         url = self.HISTORY_ENDPOINT.format(self.account_data.account_id)
-        params = { "page_size": items_per_page, "page": current_page, "locale": self.account.subtitle}
+        params = { "page_size": items_per_page, "page": current_page, "locale": self.accountSetting.subtitle}
         
         req = self.make_request( method="GET", url = url, params = params)
 
@@ -481,11 +481,11 @@ class CrunchyrollAPI:
         """
         items_per_page = 50
 
-        if not hasattr(account, "offset"):
-                self.account.offset = 0
+        if not hasattr(accountSetting, "offset"):
+                self.accountSetting.offset = 0
 
         url = self.RESUME_ENDPOINT.format(self.account_data.account_id)
-        params = { "n": items_per_page, "locale": self.account.subtitle, "start": int(self.account.offset) }
+        params = { "n": items_per_page, "locale": self.accountSetting.subtitle, "start": int(self.accountSetting.offset) }
 
         req = self.make_request(method = "GET", url = url, params = params)
 
@@ -493,7 +493,7 @@ class CrunchyrollAPI:
 
     def get_episodes_by_playlist(self):
         """ shows anime queue/playlist """
-        params = { "n": 1024, "locale": self.account.subtitle }
+        params = { "n": 1024, "locale": self.accountSetting.subtitle }
         url = self.WATCHLIST_LIST_ENDPOINT.format(self.account_data.account_id)
 
         req = self.make_request(method = "GET", url = url, params = params)
@@ -504,7 +504,7 @@ class CrunchyrollAPI:
         """ Retrieve all crunchylists """
 
         url = self.CRUNCHYLISTS_LISTS_ENDPOINT.format(self.account_data.account_id)
-        params = { 'locale': self.account.subtitle }
+        params = { 'locale': self.accountSetting.subtitle }
         req = self.make_request(method = 'GET', url = url, params = params)
 
         # check for error
@@ -516,9 +516,9 @@ class CrunchyrollAPI:
     def search_items_by_crunchylist(self):
         """ Retrieve all items for a crunchylist """
 
-        utils.crunchy_log(self.account, "Fetching crunchylist: %s" % self.account.crunchylist_item_id)
-        url = self.CRUNCHYLISTS_VIEW_ENDPOINT.format(self.account_data.account_id, self.account.crunchylist_item_id)
-        params = { 'locale': self.account.subtitle }
+        utils.crunchy_log(self.accountSetting, "Fetching crunchylist: %s" % self.accountSetting.crunchylist_item_id)
+        url = self.CRUNCHYLISTS_VIEW_ENDPOINT.format(self.account_data.account_id, self.accountSetting.crunchylist_item_id)
+        params = { 'locale': self.accountSetting.subtitle }
 
         req = self.make_request(method='GET', url = url, params = params)
 
@@ -552,7 +552,7 @@ class CrunchyrollAPI:
                 if item['panel']['type'] == 'episode':
                     listable_items.append(EpisodeData(item))
             else:
-                utils.crunchy_err(self.account, "unhandled index for metadata. %s"
+                utils.crunchy_err(self.accountSetting, "unhandled index for metadata. %s"
                                   % (json.dumps(item, indent=4)))
                 continue
 
@@ -592,7 +592,7 @@ class CrunchyrollAPI:
         try:
             r_json: Dict = r.json()
         except requests.exceptions.JSONDecodeError:
-            utils.crunchy_err(self.account, "Failed to parse response data")
+            utils.crunchy_err(self.accountSetting, "Failed to parse response data")
             return None
 
         if "error" in r_json:
@@ -614,7 +614,7 @@ class CrunchyrollAPI:
             method="GET",
             url=api.OBJECTS_BY_ID_LIST_ENDPOINT.format(','.join(ids)),
             params={
-                "locale": self.account.subtitle,
+                "locale": self.accountSetting.subtitle,
                 # "preferred_audio_language": ""
             }
         )
@@ -633,7 +633,7 @@ class CrunchyrollAPI:
             method='GET',
             url=self.PLAYHEADS_ENDPOINT.format(self.account_data.account_id),
             params={
-                'locale': self.account.subtitle,
+                'locale': self.accountSetting.subtitle,
                 'content_ids': ','.join(episode_ids)
             }
         )
@@ -660,7 +660,7 @@ class CrunchyrollAPI:
             url=self.WATCHLIST_V2_ENDPOINT.format(self.account_data.account_id),
             params={
                 "content_ids": ','.join(ids),
-                "locale": self.account.subtitle
+                "locale": self.accountSetting.subtitle
             }
         )
 
@@ -674,7 +674,7 @@ class CrunchyrollAPI:
             url=self.CONTINUEWATCHING_ENDPOINT.format(self.account_data.account_id),
             params={
                 "n":  1024,
-                "locale": self.account.subtitle
+                "locale": self.accountSetting.subtitle
             }
         )
 
@@ -728,7 +728,7 @@ class CrunchyrollAPI:
             if argv.crunchylist_filter in filter_crunchylists:
                 return self.search_items_by_crunchylist()
             else:
-                utils.crunchy_info(self.account, "list crunchylist filter %s" % str(filter_crunchylists))
+                utils.crunchy_info(self.accountSetting, "list crunchylist filter %s" % str(filter_crunchylists))
                 return filter_crunchylists
 
         # return Episode
@@ -746,11 +746,11 @@ class CrunchyrollAPI:
         if argv.history:
             return self.get_episodes_by_history()
 
-        utils.crunchy_err(self.account, "Missing arg defined")
+        utils.crunchy_err(self.accountSetting, "Missing arg defined")
         return None
 
     @staticmethod
-    def get_argv():
+    def get_argv(flush = False):
 
         parser = argparse.ArgumentParser()
         parser.add_argument("--log_file", type=str, help="setting_file", required=False, default="crunchy.log")
@@ -781,7 +781,10 @@ class CrunchyrollAPI:
         en-US, en-GB , es-419, es-ES, pt-BR, pt-PT, fr-FR, de-DE, ar-ME, it-IT, ru-RU, en-US
         """, required=False)
 
-        return parser.parse_args([])
+        if flush:
+            return parser.parse_args([])
+        
+        return parser.parse_args()
     
 def filter_seasons(crunchyroll_settings: CrunchyrollSettings, item: Dict) -> bool:
     """ takes an API info struct and returns if it matches user language settings """
@@ -836,26 +839,26 @@ if __name__ == "__main__":
     argv = CrunchyrollAPI.get_argv()
 
     """ Main function for the settings """
-    account = CrunchyrollSettingsArgs(argv)
+    accountSetting = CrunchyrollSettingsArgs(argv)
 
-    if not (account.crunchyroll_username and account.crunchyroll_password):
+    if not (accountSetting.crunchyroll_username and accountSetting.crunchyroll_password):
         # open settings settings
-        utils.crunchy_err(account, "Missing username/password")
+        utils.crunchy_err(accountSetting, "Missing username/password")
         exit(1)
 
     # login
-    api = CrunchyrollAPI(account=account)
+    api = CrunchyrollAPI(accountSetting=accountSetting)
 
     if not api.start():
-        utils.crunchy_err(account, "Login failed")
+        utils.crunchy_err(accountSetting, "Login failed")
         exit(2)
 
-    utils.crunchy_info(account, "Login successful")
+    utils.crunchy_info(accountSetting, "Login successful")
 
     _list = api.check_arg(argv)
 
     if _list is None:
-        utils.crunchy_dump(account, argv.__dict__)
+        utils.crunchy_dump(accountSetting, argv.__dict__)
         exit(3)
     
-    debug(account, _list, argv)
+    debug(accountSetting, _list, argv)

@@ -14,11 +14,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from CrunchyrollAPI import SettingsData, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData
+from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData
 import os
 
 def get_config():
-    return SettingsData({
+    return AccountSettings({
     "setting_file": "settings.json",
     "profile_path": "./",
     "crunchyroll_username": os.environ.get('cu'),
@@ -36,16 +36,12 @@ def test_exported_env():
     assert os.environ.get('cp') != ""
 
 def test_history():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.history = True
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert type(_list) is list, "Attendu type list_seasons is list"
@@ -55,16 +51,12 @@ def test_history():
         assert type(item) is EpisodeData
 
 def test_continue_watching():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.continue_watching = True
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert type(_list) is list, "Attendu type list_seasons is list"
@@ -74,16 +66,12 @@ def test_continue_watching():
         assert type(item) is EpisodeData
 
 def test_playlist():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.playlist = True
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert type(_list) is list, "Attendu type list_seasons is list"
@@ -93,17 +81,13 @@ def test_playlist():
         assert type(item) is EpisodeData
 
 def test_search_one_serie():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.search = 'one'
     argv.search_type = 'series'
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert type(_list) is list, "Attendu type list_seasons is list"
@@ -113,17 +97,13 @@ def test_search_one_serie():
         assert type(item) is SeriesData
 
 def test_search_one_episode():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.search = 'one'
     argv.search_type = 'episode'
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert type(_list) is list, "Attendu type list_seasons is list"
@@ -136,9 +116,9 @@ def test_search_one_episode():
 def test_crunchyrollapi_login_failed():
     print(__name__)
 
-    from CrunchyrollAPI import SettingsData, CrunchyrollSettingsClass, CrunchyrollAPI, LoginError
+    from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, LoginError
     import pytest
-    SC = SettingsData({
+    AC = AccountSettings({
     "setting_file": "./raise/settings.json",
     "profile_path": "./raise/",
     "crunchyroll_username": "",
@@ -152,25 +132,19 @@ def test_crunchyrollapi_login_failed():
     find="fall-2015"
     field = None
 
-    _SC = CrunchyrollSettingsClass(SC)
-
-    API = CrunchyrollAPI (_SC)
+    API = CrunchyrollAPI (CrunchyrollSettingsClass(AC))
 
     with pytest.raises(LoginError):
         API.start()
 
 
 def test_category_thriller():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.category_filter = 'thriller'
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert len(_list) > 0
@@ -179,13 +153,7 @@ def test_category_thriller():
         assert type(item) is SeriesData
     
 def test_list_season():
-    print(__name__)
-
-    SC = get_config()
-
-    _SC = CrunchyrollSettingsClass(SC)
-
-    API = CrunchyrollAPI (_SC)
+    API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
     assert API.start(), "Attendu Api.start()"
     _list = API.list_seasons()
     assert type(_list) is list, "Attendu type list_seasons is list"
@@ -193,29 +161,19 @@ def test_list_season():
 
 
 def test_list_categories():
-    print(__name__)
-
-    SC = get_config()
-
-    _SC = CrunchyrollSettingsClass(SC)
-
-    API = CrunchyrollAPI (_SC)
+    API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
     assert API.start(), "Attendu Api.start()"
     _list = API.list_categories()
     assert type(_list) is list, "Attendu type list_categories is list"
     assert len(_list) > 0
 
 def test_season_fall_2023():
-    argv = lambda: None
-    argv.history = True
-    argv.category_filter = False
-    """ Main function for the settings """
-    account = CrunchyrollSettingsClass(get_config())
-    argv = CrunchyrollAPI.get_argv()
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
     argv.season_filter = 'fall-2023'
 
     # login
-    API = CrunchyrollAPI(account=account)
+    API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
     assert type(_list) is list
