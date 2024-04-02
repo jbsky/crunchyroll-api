@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData, SeasonsTag,Categories
+from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData, SeasonsTag, Categories, SeasonData
 import os
 
 def get_config():
@@ -40,7 +40,6 @@ def test_history():
     argv = CrunchyrollAPI.get_argv(True)
     argv.history = True
 
-    # login
     API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
@@ -55,7 +54,6 @@ def test_continue_watching():
     argv = CrunchyrollAPI.get_argv(True)
     argv.continue_watching = True
 
-    # login
     API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
@@ -70,7 +68,6 @@ def test_playlist():
     argv = CrunchyrollAPI.get_argv(True)
     argv.playlist = True
 
-    # login
     API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
@@ -86,7 +83,6 @@ def test_search_one_serie():
     argv.search = 'one'
     argv.search_type = 'series'
 
-    # login
     API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
@@ -96,13 +92,41 @@ def test_search_one_serie():
         assert issubclass(type(item), ListableItem)
         assert type(item) is SeriesData
 
+def test_search_one_piece_season():
+    accountSettings = CrunchyrollSettingsClass(get_config())
+    argv = CrunchyrollAPI.get_argv(True)
+    argv.search = 'One Piece'
+
+    API = CrunchyrollAPI(accountSettings)
+    assert API.start(), "Attendu Api.start()"
+    _list = API.check_arg(argv)
+    assert type(_list) is list
+    counter = 0
+    for item in _list:
+        assert issubclass(type(item), ListableItem)
+        assert type(item) is SeriesData
+        if argv.search == item.title:
+            id = item.id
+            counter += 1
+
+    assert counter == 1
+
+    argv = CrunchyrollAPI.get_argv(True)
+    argv.id = id
+    argv.search_type = 'season'
+    _list = API.check_arg(argv)
+    assert type(_list) is list
+    assert len(_list) > 1
+    for item in _list:
+        assert issubclass(type(item), ListableItem)
+        assert type(item) is SeasonData
+
 def test_search_one_episode():
     accountSettings = CrunchyrollSettingsClass(get_config())
     argv = CrunchyrollAPI.get_argv(True)
     argv.search = 'one'
     argv.search_type = 'episode'
 
-    # login
     API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)
@@ -111,7 +135,6 @@ def test_search_one_episode():
     for item in _list:
         assert issubclass(type(item), ListableItem)
         assert type(item) is EpisodeData
-
 
 def test_crunchyrollapi_login_failed():
     print(__name__)
@@ -129,14 +152,10 @@ def test_crunchyrollapi_login_failed():
     "log_file": "crunchy.log",
     })
 
-    find="fall-2015"
-    field = None
-
     API = CrunchyrollAPI (CrunchyrollSettingsClass(AC))
 
     with pytest.raises(LoginError):
         API.start()
-
 
 def test_category_thriller():
     accountSettings = CrunchyrollSettingsClass(get_config())
@@ -191,7 +210,6 @@ def test_season_tag_fall_2023():
     argv = CrunchyrollAPI.get_argv(True)
     argv.season_filter = 'fall-2023'
 
-    # login
     API = CrunchyrollAPI(accountSettings)
     assert API.start(), "Attendu Api.start()"
     _list = API.check_arg(argv)

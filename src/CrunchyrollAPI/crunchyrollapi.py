@@ -717,13 +717,12 @@ class CrunchyrollAPI:
             else:
                 return filter_season
             
-        if argv.season_id is not None or \
-            argv.id is not None and argv.search_type == "season":
+        if argv.id is not None and argv.search_type == "episode":
             # episode
-            return self.search_episodes_by_season_id(argv.season_id)
+            return self.search_episodes_by_season_id(argv.id)
 
         # return 1 Serie
-        if argv.id is not None and argv.search_type == 'series':
+        if argv.id is not None and argv.search_type == 'season':
             return self.search_seasons_by_series_id(argv.id)
 
         # return Series
@@ -753,20 +752,22 @@ class CrunchyrollAPI:
         if argv.history:
             return self.get_episodes_by_history()
 
-        utils.crunchy_err(self.accountSetting, "Missing arg defined")
+        utils.crunchy_err(self.accountSetting, "No argument defined")
         return None
 
     @staticmethod
     def get_argv(pytest = False):
 
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter)
         parser.add_argument("--log_file", type=str, help="setting_file", required=False, default="crunchy.log")
         groupAPI = parser.add_argument_group('Using the Crunchyroll API',"")
-        groupAPI.add_argument("--season_id", type=str, required=False)
-        groupAPI.add_argument("--serie_id", type=str, required=False)
-        groupAPI.add_argument("--search","-s", type=str, help="string search", required=False)
-        groupAPI.add_argument("--search_type", type=str, help="search type", required=False, default="series")
-        groupAPI.add_argument("--id", type=str, required=False)
+        groupAPI.add_argument("--id", type=str, help="search with id search, specify search_type", required=False)
+        groupAPI.add_argument("--search", type=str, help="search with string", required=False)
+        groupAPI.add_argument("--search_type", type=str, help="""for search by string SEARCH_TYPE=top_results|series|movie_listing|episode
+for search by id     SEARCH_TYPE=season|episode
+/!\ search by season id return episode list /!\ 
+/!\ search by series id return  season list /!\ 
+""", required=False, default="series")
         groupAPI.add_argument("--crunchylist_filter", help="list filter or filter by crunchylist", required=False, action='store', const="", nargs='?', type = str)
         groupAPI.add_argument("--category_filter", help="list filter or filter by category", required=False, action='store', const="", nargs='?', type = str)
         groupAPI.add_argument("--season_filter", help="list filter or filter by saison", required=False, action='store', const="", nargs='?', type = str)
