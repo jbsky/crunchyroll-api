@@ -437,7 +437,7 @@ class CrunchyrollAPI:
         if item_format:
 
             for f in req["data"]:
-                list.append(Seasons(f))
+                list.append(SeasonsTag(f))
 
             return list
 

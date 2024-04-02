@@ -14,7 +14,7 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData, Seasons,Categories
+from CrunchyrollAPI import AccountSettings, CrunchyrollSettingsClass, CrunchyrollAPI, ListableItem, SeriesData, EpisodeData, SeasonsTag,Categories
 import os
 
 def get_config():
@@ -152,14 +152,14 @@ def test_category_thriller():
         assert issubclass(type(item), ListableItem)
         assert type(item) is SeriesData
     
-def test_list_season():
+def test_list_season_tag():
     API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
     assert API.start(), "Attendu Api.start()"
     _list = API.list_seasons()
     assert type(_list) is list, "Attendu type list_seasons is list"
     assert len(_list) > 0
 
-def test_list_season_item_format():
+def test_list_season_tag_item_format():
     API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
     assert API.start(), "Attendu Api.start()"
     _list = API.list_seasons(True)
@@ -167,19 +167,17 @@ def test_list_season_item_format():
     assert len(_list) > 0
     for item in _list:
         assert issubclass(type(item), ListableItem)
-        assert type(item) is Seasons
+        assert type(item) is SeasonsTag
 
 def test_list_categories_item_format():
     API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
     assert API.start(), "Attendu Api.start()"
-    _list = API.list_seasons(True)
-    assert type(_list) is list, "Attendu type list_seasons is list"
+    _list = API.list_categories(True)
+    assert type(_list) is list, "Attendu type list_categories is list"
     assert len(_list) > 0
     for item in _list:
         assert issubclass(type(item), ListableItem)
         assert type(item) is Categories
-
-
 
 def test_list_categories():
     API = CrunchyrollAPI (CrunchyrollSettingsClass(get_config()))
@@ -188,7 +186,7 @@ def test_list_categories():
     assert type(_list) is list, "Attendu type list_categories is list"
     assert len(_list) > 0
 
-def test_season_fall_2023():
+def test_season_tag_fall_2023():
     accountSettings = CrunchyrollSettingsClass(get_config())
     argv = CrunchyrollAPI.get_argv(True)
     argv.season_filter = 'fall-2023'

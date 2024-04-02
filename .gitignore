@@ -9,3 +9,5 @@ settings.json
 .vscode
 dist
 ! raise/settings.json
+*egg-info
+build

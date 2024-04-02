@@ -22,7 +22,7 @@ __all__ = [
         'AccountData',
         'LoginError',
         'Categories',
-        'Seasons',
+        'SeasonsTag',
         'SeasonData',
         'SeriesData',
         'EpisodeData',

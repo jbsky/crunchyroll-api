@@ -180,8 +180,8 @@ class Categories(ListableItem):
         self.href = data['__href__']
         self.thumb = data['images']['background'][len(data['images']['background'])-1]['source']
 
-class Seasons(ListableItem):
-    """ A Season/Arc of a Series containing Episodes """
+class SeasonsTag(ListableItem):
+    """  Seasons tag format [winter|fall|spring|summer]-YYYY """
 
     def __init__(self, data: dict):
         super().__init__()
@@ -191,7 +191,7 @@ class Seasons(ListableItem):
         self.description = data["localization"]["description"]
 
 class SeasonData(ListableItem):
-    """ A Season/Arc of a Series containing Episodes """
+    """ A Season/Arc (of a Series) containing Episodes """
 
     def __init__(self, data: dict):
         super().__init__()
